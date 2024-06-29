@@ -24,7 +24,7 @@
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_thread.h>
-// #include <SDL/SDL_ttf.h>
+#include <SDL/SDL_ttf.h>
 
 #include "font.h"
 #include "keyboard.h"
@@ -466,6 +466,10 @@ xcalloc(size_t nmemb, size_t size)
 //	upscale 320x240x16 -> 640x480x16
 void upscale2x(uint32_t *restrict src, uint32_t *restrict dst)
 {
+	for (int i=0; i<640*480/2; ++i){
+		dst[i] = src[i];
+	}
+	return;
 	uint32_t x, y, pix, dpix1, dpix2;
 	for (y = 240; y > 0; y--, dst += 320)
 	{
@@ -544,7 +548,7 @@ void xflip(void)
 		return;
 		// printf("flip\n");
 #if defined(MIYOOMINI) || defined(TRIMUISMART) || defined(RG35XX)
-	memcpy(screen2->pixels, xw.win->pixels, 320 * 240 * 2); // copy for keyboardMix
+	memcpy(screen2->pixels, xw.win->pixels, initial_width * initial_height * 2); // copy for keyboardMix
 	draw_keyboard(screen2);									// screen2(SW) = console + keyboard
 #ifdef RG35XX
 	upscale2x(screen2->pixels, screen->pixels);
@@ -2468,8 +2472,10 @@ void sdlloadfonts(char *fontstr, int fontsize)
 	dc.font = TTF_OpenFont(fontstr, fontsize);
 	fprintf(stderr, "%s\n", fontstr);*/
 	// TTF_SizeUTF8(dc.font, "O", &xw.cw, &xw.ch);
-	xw.cw = 6;
-	xw.ch = 8;
+	init_font(fontstr, fontsize);
+	font_size("O", &xw.cw, &xw.ch);
+	//xw.cw = 6;
+	//xw.ch = 8;
 
 	/*if(dc.ifont) TTF_CloseFont(dc.ifont);
 	dc.ifont = TTF_OpenFont(fontstr, fontsize);
@@ -2519,6 +2525,8 @@ void sdlinit(void)
 	SDL_Init(SDL_INIT_JOYSTICK);
 	SDL_JoystickEventState(SDL_ENABLE);
 	SDL_JoystickOpen(0);
+
+    TTF_Init();
 
 	fprintf(stderr, "SDL font\n");
 	SDL_EnableUNICODE(1);
@@ -2685,7 +2693,7 @@ void xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen)
 				}*/
 		int xs = r.x;
 		if (xw.win != NULL)
-			draw_string(xw.win, s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
+			drawText(s, xw.win, xs, r.y, *fg);
 
 		/*while(*s) {
 			draw_char(xw.win, *s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
@@ -3192,6 +3200,10 @@ int main(int argc, char *argv[])
 			if (++i < argc)
 				opt_font = argv[i];
 			break;
+		case 's':
+			if (++i < argc)
+				fontsize = atoi(argv[i]);
+			break;
 		case 'o':
 			if (++i < argc)
 				opt_io = argv[i];
@@ -3216,10 +3228,11 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Unable to register SDL_Quit atexit\n");
 	}
 
-	setlocale(LC_CTYPE, "");
-	tnew((initial_width - 2) / 6, (initial_height - 2) / 8);
-	ttynew();
+	//setlocale(LC_CTYPE, "");
 	sdlinit(); /* Must have TTY before cresize */
+
+	tnew((initial_width - 2) / xw.cw, (initial_height - 2) / xw.ch);
+	ttynew();
 	init_keyboard();
 	selinit();
 	run();

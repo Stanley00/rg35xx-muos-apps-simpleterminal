@@ -69,13 +69,13 @@ static SDLKey keys[2][NUM_ROWS][NUM_KEYS] = {
 static char *syms[2][NUM_ROWS][NUM_KEYS] = {
 	{{"esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", NULL},
 	 {"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "bksp", "ins", "del", " ^ ", NULL},
-	 {"tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\", "home", "end", " \xde ", NULL},
+	 {"tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\", "home", "end", " v ", NULL},
 	 {"cap", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", " enter", "pg up", " < ", NULL},
 	 {"shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", " shift", "pg dn", " > ", NULL},
 	 {"ctrl", "win", "alt", "   space   ", "alt", "win", "menu", "ctrl", NULL}},
 	{{"esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", NULL},
 	 {"~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "bksp", "ins", "del", " ^ ", NULL},
-	 {"tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|", "home", "end", " \xde ", NULL},
+	 {"tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|", "home", "end", " v ", NULL},
 	 {"cap", "A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "\"", " enter", "pg up", " < ", NULL},
 	 {"shift", "Z", "X", "C", "V", "B", "N", "M", "<", ">", "?", " shift", "pg dn", " > ", NULL},
 	 {"ctrl", "win", "alt", "   space   ", "alt", "win", "menu", "ctrl", NULL}}};
@@ -104,14 +104,14 @@ char *help =
 	"  ARROWS: select key from keyboard\n"
 	"  A:  press key\n"
 	"  B:  backspace \n"
-	"  L1: shift\n"
-	"  R1: toggle key (useful for shift/ctrl...)\n"
+	"  L1: toggle key (useful for shift/ctrl...)\n"
+	"  R1: shift\n"
 	"  Y:  change keyboard location (top/bottom)\n"
 	"  X:  show / hide keyboard\n"
 	"  START:    enter\n"
 	"  SELECT:   tab\n"
-	"  L2:       left\n"
-	"  R2:       right\n"
+	"  L2+ABXY:  quick keys\n"
+	"  R2+DPAD:  navigation\n"
 	"  MENU:     quit\n\n"
 	"Cheatcheet (tutorial at www.shellscript.sh):\n"
 	"  TAB key         complete path\n"
@@ -131,11 +131,14 @@ void draw_keyboard(SDL_Surface *surface)
 	unsigned short sel_color = SDL_MapRGB(surface->format, 128, 255, 128);
 	unsigned short sel_toggled_color = SDL_MapRGB(surface->format, 255, 255, 128);
 	unsigned short toggled_color = SDL_MapRGB(surface->format, 192, 192, 0);
+	SDL_Color sel_c = {128, 255, 128};
+	SDL_Color text_c = {0, 0, 0};
+	SDL_Color sel_toggled_c = {255, 255, 128};
 	if (show_help)
 	{
 		SDL_FillRect(surface, NULL, text_color);
-		draw_string(surface, "SDL Terminal by Benob, based on st-sdl", 0, 10, sel_toggled_color);
-		draw_string(surface, help, 8, 30, sel_color);
+		drawText("SDL Terminal by Benob, based on st-sdl", surface, 0, 10, sel_toggled_c);
+		drawText(help, surface, 8, 30, sel_c);
 		return;
 	}
 	if (!active)
@@ -143,14 +146,14 @@ void draw_keyboard(SDL_Surface *surface)
 	int total_length = -1;
 	for (int i = 0; i < NUM_KEYS && syms[0][0][i]; i++)
 	{
-		total_length += (1 + strlen(syms[0][0][i])) * 6;
+		total_length += (1 + strlen(syms[0][0][i])) * 12;
 	}
-	int center_x = (surface->w - total_length) / 2;
-	int x = center_x, y = surface->h - 8 * (NUM_ROWS)-16;
+	int center_x = (surface->w - total_length) / 2+4;
+	int x = center_x, y = surface->h - 16 * (NUM_ROWS)-40;
 	if (location == 1)
-		y = 16;
+		y = 30;
 
-	SDL_Rect rect = {x - 4, y - 3, total_length + 3, NUM_ROWS * 8 + 3};
+	SDL_Rect rect = {x - 7, y - 6, total_length+2, NUM_ROWS * 16 + 15};
 	SDL_FillRect(surface, &rect, bg_color);
 
 	for (int j = 0; j < NUM_ROWS; j++)
@@ -159,7 +162,7 @@ void draw_keyboard(SDL_Surface *surface)
 		for (int i = 0; i < row_length[j]; i++)
 		{
 			int length = strlen(syms[shifted][j][i]);
-			SDL_Rect r2 = {x - 2, y - 1, length * 6 + 4, 7};
+			SDL_Rect r2 = {x - 4, y - 4, length * 12 + 8, 16};
 			if (toggled[j][i])
 			{
 				if (selected_i == i && selected_j == j)
@@ -179,10 +182,10 @@ void draw_keyboard(SDL_Surface *surface)
 			{
 				SDL_FillRect(surface, &r2, key_color);
 			}
-			draw_string(surface, syms[shifted][j][i], x, y, text_color);
-			x += 6 * (length + 1);
+			drawText(syms[shifted][j][i], surface, x, y-6, text_c);
+			x += 12 * (length + 1);
 		}
-		y += 8;
+		y += 18;
 	}
 }
 
@@ -304,13 +307,79 @@ int compute_new_col(int visual_offset, int old_row, int new_row)
 int handle_joystick_event(SDL_Event *event)
 {
 	static int visual_offset = 0;
+	static unsigned LR2 = 0;
 
-	// Toggle keyboard visibility
-	if (event->type == SDL_JOYBUTTONDOWN && event->jbutton.button == RGBUTTON_X)
-	{
-		active = !active;
+	if (LR2){
+		if ((event->type == SDL_JOYBUTTONDOWN && event->jbutton.state == SDL_PRESSED)){
+		if (event->jbutton.button == RGBUTTON_A){
+			if (LR2&2)
+				simulate_key(SDLK_END, STATE_TYPED);
+			else
+				simulate_key(SDLK_QUOTEDBL, STATE_TYPED);
+		} else if (event->jbutton.button == RGBUTTON_B){
+                        if (LR2&2)
+                                simulate_key(SDLK_PAGEDOWN, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_SPACE, STATE_TYPED);
+		} else if (event->jbutton.button == RGBUTTON_X){
+                        if (LR2&2)
+                                simulate_key(SDLK_PAGEUP, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_MINUS, STATE_TYPED);
+		} else if (event->jbutton.button == RGBUTTON_Y){
+                        if (LR2&2)
+                                simulate_key(SDLK_HOME, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_SEMICOLON, STATE_TYPED);
+		}
+		}
+
+		if (event->type == SDL_JOYHATMOTION){
+		if (event->jhat.value == RGPAD_UP){
+                        if (LR2&2)
+                                simulate_key(SDLK_UP, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_BACKQUOTE, STATE_TYPED);
+		} else if (event->jhat.value == RGPAD_DOWN){
+                        if (LR2&2)
+                                simulate_key(SDLK_DOWN, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_DOLLAR, STATE_TYPED);
+		} else if (event->jhat.value == RGPAD_LEFT){
+                        if (LR2&2)
+                                simulate_key(SDLK_LEFT, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_LEFTPAREN, STATE_TYPED);
+		} else if (event->jhat.value == RGPAD_RIGHT){
+                        if (LR2&2)
+                                simulate_key(SDLK_RIGHT, STATE_TYPED);
+                        else
+                                simulate_key(SDLK_RIGHTPAREN, STATE_TYPED);
+		}
+		}
+		else if (event->type == SDL_JOYBUTTONUP && event->jbutton.state == SDL_RELEASED)
+                {
+                        if (event->jbutton.button == RGBUTTON_L2)
+                        {
+                                LR2 &= ~1u;
+                        }
+                        else if (event->jbutton.button == RGBUTTON_R2)
+                        {
+                                LR2 &= ~2u;
+                        }
+                }
+
 		return 1;
 	}
+
+        // Toggle keyboard visibility
+        if (event->type == SDL_JOYBUTTONDOWN && event->jbutton.button == RGBUTTON_X)
+        {
+                active = !active;
+                return 1;
+        }
+
+
 	if (!active)
 		return 0;
 
@@ -320,26 +389,29 @@ int handle_joystick_event(SDL_Event *event)
 		{
 			// do nothing
 		}
-		else if (event->jhat.value == RGPAD_UP && selected_j > 0)
+		else if (event->jhat.value == RGPAD_UP)
 		{
-			selected_i = compute_new_col(visual_offset, selected_j, selected_j - 1);
-			selected_j--;
+			int t = (selected_j + NUM_ROWS - 1)%NUM_ROWS;
+			selected_i = compute_new_col(visual_offset, selected_j, t);
+			selected_j = t;
 			// selected_i = selected_i * row_length[selected_j] / row_length[selected_j + 1];
 		}
-		else if (event->jhat.value == RGPAD_DOWN && selected_j < NUM_ROWS - 1)
+		else if (event->jhat.value == RGPAD_DOWN)
 		{
-			selected_i = compute_new_col(visual_offset, selected_j, selected_j + 1);
-			selected_j++;
+			int t = (selected_j+1)%NUM_ROWS;
+			selected_i = compute_new_col(visual_offset, selected_j, t);
+			selected_j = t;
+
 			// selected_i = selected_i * row_length[selected_j] / row_length[selected_j - 1];
 		}
-		else if (event->jhat.value == RGPAD_LEFT && selected_i > 0)
+		else if (event->jhat.value == RGPAD_LEFT)
 		{
-			selected_i--;
+			selected_i = (selected_i + row_length[selected_j] - 1)%row_length[selected_j];
 			visual_offset = compute_visual_offset(selected_i, selected_j);
 		}
-		else if (event->jhat.value == RGPAD_RIGHT && selected_i < row_length[selected_j] - 1)
+		else if (event->jhat.value == RGPAD_RIGHT)
 		{
-			selected_i++;
+			selected_i = (selected_i + 1)%row_length[selected_j];
 			visual_offset = compute_visual_offset(selected_i, selected_j);
 		}
 	}
@@ -353,7 +425,7 @@ int handle_joystick_event(SDL_Event *event)
 		{
 			exit(0);
 		}
-		else if (event->jbutton.button == RGBUTTON_L1)
+		else if (event->jbutton.button == RGBUTTON_R1)
 		{
 			shifted = 1;
 			toggled[4][0] = 1;
@@ -369,11 +441,13 @@ int handle_joystick_event(SDL_Event *event)
 		}
 		else if (event->jbutton.button == RGBUTTON_L2)
 		{
-			simulate_key(SDLK_LEFT, STATE_TYPED);
+			LR2 |= 1u;
+			//simulate_key(SDLK_LEFT, STATE_TYPED);
 		}
 		else if (event->jbutton.button == RGBUTTON_R2)
 		{
-			simulate_key(SDLK_RIGHT, STATE_TYPED);
+			LR2 |= 2u;
+			//simulate_key(SDLK_RIGHT, STATE_TYPED);
 		}
 		else if (event->jbutton.button == RGBUTTON_SELECT)
 		{
@@ -383,7 +457,7 @@ int handle_joystick_event(SDL_Event *event)
 		{
 			simulate_key(SDLK_RETURN, STATE_TYPED);
 		}
-		else if (event->jbutton.button == RGBUTTON_R1)
+		else if (event->jbutton.button == RGBUTTON_L1)
 		{
 			toggled[selected_j][selected_i] = 1 - toggled[selected_j][selected_i];
 			if (toggled[selected_j][selected_i])
@@ -419,11 +493,19 @@ int handle_joystick_event(SDL_Event *event)
 	}
 	else if (event->type == SDL_JOYBUTTONUP && event->jbutton.state == SDL_RELEASED)
 	{
-		if (event->jbutton.button == RGBUTTON_L1)
+		if (event->jbutton.button == RGBUTTON_R1)
 		{
 			shifted = 0;
 			toggled[4][0] = 0;
 			update_modstate(SDLK_LSHIFT, STATE_UP);
+		}
+		else if (event->jbutton.button == RGBUTTON_L2)
+		{
+			LR2 = 0u;
+		}
+		else if (event->jbutton.button == RGBUTTON_R2)
+		{
+			LR2 = 0u;
 		}
 	}
 	return 1;
