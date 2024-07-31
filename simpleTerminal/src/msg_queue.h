@@ -5,8 +5,8 @@
 #define QUEUE_ID 1
 
 typedef struct {
-	long type;
-	long data;
+    long type;
+    long data;
 } message_t;
 
 typedef int queue_t;
