@@ -2337,7 +2337,7 @@ void sdlshutdown(void)
 {
     fprintf(stderr, "SDL shutdown\n");
     if (thread) {
-        printf("Thread Killed %d\n", thread);
+        printf("Thread Killed %p\n", thread);
         SDL_KillThread(thread);
         thread = NULL;
     }
@@ -2398,7 +2398,7 @@ void sdlinit(void)
         printf("********* UNABLE TO CREATE THREAD. EXITING *********\n");
         exit(EXIT_FAILURE);
     } else {
-        printf("Thread Created %d\n", thread);
+        printf("Thread Created %p\n", thread);
     }
 
     expose(NULL);

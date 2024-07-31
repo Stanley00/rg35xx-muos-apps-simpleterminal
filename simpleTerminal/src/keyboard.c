@@ -302,6 +302,54 @@ int handle_joystick_event(SDL_Event *event)
     static int visual_offset = 0;
     static unsigned LR2 = 0;
 
+    if (!active && !LR2) {
+        if (event->type == SDL_JOYHATMOTION) {
+            if (event->jhat.value == RGPAD_UP) {
+                simulate_key(SDLK_UP, STATE_TYPED);
+            } else if (event->jhat.value == RGPAD_DOWN) {
+                simulate_key(SDLK_DOWN, STATE_TYPED);
+            } else if (event->jhat.value == RGPAD_LEFT) {
+                simulate_key(SDLK_LEFT, STATE_TYPED);
+            } else if (event->jhat.value == RGPAD_RIGHT) {
+                simulate_key(SDLK_RIGHT, STATE_TYPED);
+            } else {
+                goto process_next;
+            }
+        } else if (event->type == SDL_JOYBUTTONDOWN && event->jbutton.state == SDL_PRESSED) {
+            if (event->jbutton.button == RGBUTTON_L2) {
+                LR2 |= 1u;
+            } else if (event->jbutton.button == RGBUTTON_R2) {
+                LR2 |= 2u;
+            } else if (event->jbutton.button == RGBUTTON_SELECT) {
+                simulate_key(SDLK_TAB, STATE_TYPED);
+            } else if (event->jbutton.button == RGBUTTON_START) {
+                simulate_key(SDLK_RETURN, STATE_TYPED);
+            } else if (event->jbutton.button == RGBUTTON_A) {
+                simulate_key(SDLK_SPACE, STATE_TYPED);
+            } else if (event->jbutton.button == RGBUTTON_B) {
+                simulate_key(SDLK_BACKSPACE, STATE_TYPED);
+            } else if (event->jbutton.button == RGBUTTON_Y) {
+                simulate_key(SDLK_MINUS, STATE_TYPED);
+            } else if (event->jbutton.button == RGBUTTON_MENU) {
+                SDL_Quit();
+                exit(0);
+            } else {
+                goto process_next;
+            }
+        } else if (event->type == SDL_JOYBUTTONUP && event->jbutton.state == SDL_RELEASED) {
+            if (event->jbutton.button == RGBUTTON_L2) {
+                LR2 &= ~1u;
+            } else if (event->jbutton.button == RGBUTTON_R2) {
+                LR2 &= ~2u;
+            } else {
+                goto process_next;
+            }
+        } else {
+            goto process_next;
+        }
+        return 1;
+    }
+process_next:
     if (LR2) {
         if ((event->type == SDL_JOYBUTTONDOWN && event->jbutton.state == SDL_PRESSED)) {
             if (event->jbutton.button == RGBUTTON_A) {
@@ -329,9 +377,14 @@ int handle_joystick_event(SDL_Event *event)
                     simulate_key(SDLK_SEMICOLON, STATE_TYPED);
                 }
             }
-        }
+        } else if (event->type == SDL_JOYBUTTONUP && event->jbutton.state == SDL_RELEASED) {
+            if (event->jbutton.button == RGBUTTON_L2) {
+                LR2 &= ~1u;
+            } else if (event->jbutton.button == RGBUTTON_R2) {
+                LR2 &= ~2u;
+            }
 
-        if (event->type == SDL_JOYHATMOTION) {
+        } else if (event->type == SDL_JOYHATMOTION) {
             if (event->jhat.value == RGPAD_UP) {
                 if (LR2&2) {
                     simulate_key(SDLK_UP, STATE_TYPED);
@@ -357,12 +410,6 @@ int handle_joystick_event(SDL_Event *event)
                     simulate_key(SDLK_RIGHTPAREN, STATE_TYPED);
                 }
             }
-        } else if (event->type == SDL_JOYBUTTONUP && event->jbutton.state == SDL_RELEASED) {
-            if (event->jbutton.button == RGBUTTON_L2) {
-                LR2 &= ~1u;
-            } else if (event->jbutton.button == RGBUTTON_R2) {
-                LR2 &= ~2u;
-            }
         }
 
         return 1;
@@ -373,7 +420,6 @@ int handle_joystick_event(SDL_Event *event)
         active = !active;
         return 1;
     }
-
 
     if (!active) {
         return 0;
@@ -403,7 +449,12 @@ int handle_joystick_event(SDL_Event *event)
     } else if (event->type == SDL_JOYBUTTONDOWN && event->jbutton.state == SDL_PRESSED) {
         if (show_help) {
             // do nothing
+        } else if (event->jbutton.button == RGBUTTON_L2) {
+            LR2 |= 1u;
+        } else if (event->jbutton.button == RGBUTTON_R2) {
+            LR2 |= 2u;
         } else if (event->jbutton.button == RGBUTTON_MENU) {
+            SDL_Quit();
             exit(0);
         } else if (event->jbutton.button == RGBUTTON_R1) {
             shifted = 1;
@@ -413,12 +464,6 @@ int handle_joystick_event(SDL_Event *event)
             location = !location;
         } else if (event->jbutton.button == RGBUTTON_B) {
             simulate_key(SDLK_BACKSPACE, STATE_TYPED);
-        } else if (event->jbutton.button == RGBUTTON_L2) {
-            LR2 |= 1u;
-            //simulate_key(SDLK_LEFT, STATE_TYPED);
-        } else if (event->jbutton.button == RGBUTTON_R2) {
-            LR2 |= 2u;
-            //simulate_key(SDLK_RIGHT, STATE_TYPED);
         } else if (event->jbutton.button == RGBUTTON_SELECT) {
             simulate_key(SDLK_TAB, STATE_TYPED);
         } else if (event->jbutton.button == RGBUTTON_START) {
